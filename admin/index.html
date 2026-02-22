@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>🔐 Admin — Lì Xì Online</title>
+  <link rel="stylesheet" href="../admin.css"/>
+  <style>
+    .game-status-bar{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;margin-bottom:18px}
+    .gs-dot{width:10px;height:10px;border-radius:50%}
+    .gs-dot.open{background:var(--green);animation:syncp 2s ease-in-out infinite}
+    .gs-dot.closed{background:var(--red-500)}
+    #game-open-label{font-size:.9rem;font-weight:700}
+    .quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .share-panel{background:rgba(46,204,113,.05);border:1px solid rgba(46,204,113,.15);border-radius:12px;padding:16px;margin-bottom:16px}
+    .share-panel-title{font-size:.7rem;color:rgba(46,204,113,.7);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+    .link-row-adm{margin-bottom:8px}
+    .link-row-adm .link-label{font-size:.65rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+    .link-box-adm{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 13px;display:flex;align-items:center;gap:9px}
+    .link-text-adm{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--gold-300);flex:1;word-break:break-all}
+    .copy-btn-sm{background:rgba(212,160,23,.12);color:var(--gold-300);border:1px solid rgba(212,160,23,.2);padding:4px 10px;border-radius:6px;font-size:.7rem;cursor:pointer;transition:all .2s;flex-shrink:0;font-family:'Be Vietnam Pro',sans-serif}
+    .copy-btn-sm:hover{background:rgba(212,160,23,.22)}
+    .rooms-picker-tab{padding:20px 0}
+    .no-room-msg{text-align:center;padding:50px 20px;color:var(--text-muted)}
+    .no-room-msg h3{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--text-secondary);margin-bottom:8px}
+    /* Envelope bulk editor */
+    .env-bulk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+    .ebc{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .ebc.special{border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.05)}
+    .ebc-id{font-size:.68rem;color:var(--text-muted);margin-bottom:7px;font-family:'JetBrains Mono',monospace}
+    .ebc-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}
+    .ebc-field{font-size:.68rem}
+    .ebc-field label{display:block;color:var(--text-muted);margin-bottom:3px}
+    .ebc-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:5px 8px;color:var(--text-primary);font-size:.82rem;font-family:'JetBrains Mono',monospace;outline:none}
+    .ebc-input:focus{border-color:var(--gold-500)}
+    .ebc-check{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--text-secondary)}
+    .ebc-save-btn{width:100%;background:rgba(212,160,23,.1);color:var(--gold-300);border:1px solid rgba(212,160,23,.18);border-radius:6px;padding:6px;font-size:.74rem;cursor:pointer;font-family:'Be Vietnam Pro',sans-serif;transition:all .2s}
+    .ebc-save-btn:hover{background:rgba(212,160,23,.2)}
+    .bulk-save-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+    .section-hint{font-size:.78rem;color:var(--text-muted);margin-bottom:14px;line-height:1.5}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box" style="position:relative;z-index:1">
+    <div style="position:absolute;inset:0;border-radius:28px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(192,57,43,.1) 0%,transparent 60%);pointer-events:none"></div>
+    <span class="login-logo">🔐</span>
+    <h1 class="login-title">Admin Dashboard</h1>
+    <p class="login-subtitle">Lì Xì Online Platform</p>
+    <form id="login-form" autocomplete="off">
+      <div class="login-field"><label>Tên đăng nhập</label><input id="login-user" type="text" placeholder="admin" autocomplete="username" required/></div>
+      <div class="login-field"><label>Mật khẩu</label><input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" required/></div>
+      <p class="login-error" id="login-error"></p>
+      <button type="submit" class="login-btn">Đăng nhập →</button>
+    </form>
+    <p class="login-back"><a href="/">← Về trang chủ</a></p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="admin-app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon" id="sb-room-emoji">🧧</span>
+      <div>
+        <div class="logo-text" id="sb-room-title">Lì Xì Online</div>
+        <div class="logo-sub">Admin Panel</div>
+      </div>
+    </div>
+    <div class="room-id-badge" id="sb-room-id" style="display:none"></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Tổng quan</div>
+        <button class="nav-link active" data-tab="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></button>
+      </div>
+      <div class="nav-section" id="room-nav-section" style="display:none">
+        <div class="nav-section-label">Quản lý phòng</div>
+        <button class="nav-link" data-tab="envelopes"><span class="nav-icon">🧧</span><span class="nav-label">Phong bì</span></button>
+        <button class="nav-link" data-tab="edit-envelopes"><span class="nav-icon">✏️</span><span class="nav-label">Sửa mệnh giá</span></button>
+        <button class="nav-link" data-tab="special"><span class="nav-icon">⭐</span><span class="nav-label">Ô đặc biệt</span></button>
+        <button class="nav-link" data-tab="players"><span class="nav-icon">👥</span><span class="nav-label">Người chơi</span></button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Phân tích</div>
+        <button class="nav-link" data-tab="charts"><span class="nav-icon">📈</span><span class="nav-label">Biểu đồ</span></button>
+        <button class="nav-link" data-tab="timeline"><span class="nav-icon">⏱</span><span class="nav-label">Timeline</span></button>
+        <button class="nav-link" data-tab="notifications"><span class="nav-icon" style="position:relative">🔔<span id="notif-badge"></span></span><span class="nav-label">Thông báo</span></button>
+      </div>
+      <div class="nav-section" id="room-settings-nav" style="display:none">
+        <div class="nav-section-label">Cài đặt</div>
+        <button class="nav-link" data-tab="settings"><span class="nav-icon">⚙️</span><span class="nav-label">Cài đặt phòng</span></button>
+        <button class="nav-link" data-tab="share"><span class="nav-icon">🔗</span><span class="nav-label">Chia sẻ link</span></button>
+      </div>
+      <div class="nav-section">
+        <button class="nav-link" data-tab="rooms"><span class="nav-icon">🏠</span><span class="nav-label">Tất cả phòng</span></button>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">👤</div>
+        <div><div class="user-name" id="sb-username">Admin</div><div class="user-role">Quản trị viên</div></div>
+        <button class="logout-btn" id="logout-btn" title="Đăng xuất">⎋</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <div class="top-bar">
+      <div class="top-bar-title" id="top-bar-title">Dashboard</div>
+      <div class="top-bar-actions">
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+        <button class="icon-btn" id="refresh-btn" title="Làm mới">↺</button>
+        <button class="icon-btn" id="export-btn" title="Xuất CSV">⬇</button>
+        <button class="icon-btn" onclick="window.location.href='/'" title="Về trang chủ">🏠</button>
+      </div>
+    </div>
+
+    <div class="content-area">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="tab-section active" id="tab-dashboard">
+        <div class="metrics-grid" id="metrics-grid">
+          <div class="metric-card gold"><span class="metric-icon">🧧</span><div class="metric-value" id="m-total">—</div><div class="metric-label">Tổng phong bì</div></div>
+          <div class="metric-card green"><span class="metric-icon">✅</span><div class="metric-value" id="m-opened">—</div><div class="metric-label">Đã mở</div></div>
+          <div class="metric-card red"><span class="metric-icon">⏳</span><div class="metric-value" id="m-pending">—</div><div class="metric-label">Chưa mở</div></div>
+          <div class="metric-card purple"><span class="metric-icon">⭐</span><div class="metric-value" id="m-special-opened">—</div><div class="metric-label">Đặc biệt đã mở</div></div>
+          <div class="metric-card blue"><span class="metric-icon">💰</span><div class="metric-value" id="m-display-total">—</div><div class="metric-label">Tổng hiển thị</div></div>
+          <div class="metric-card gold"><span class="metric-icon">💎</span><div class="metric-value" id="m-real-total">—</div><div class="metric-label">Tổng thực chi</div></div>
+          <div class="metric-card green"><span class="metric-icon">👥</span><div class="metric-value" id="m-players">—</div><div class="metric-label">Người đã bốc</div></div>
+          <div class="metric-card orange"><span class="metric-icon">📊</span><div class="metric-value" id="m-pct">—</div><div class="metric-label">Tiến độ</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:180px 1fr;gap:18px;margin-bottom:20px">
+          <div class="chart-card" style="text-align:center">
+            <div class="chart-card-title" style="justify-content:center;font-size:.85rem">Tiến độ</div>
+            <div class="ring-wrap">
+              <svg width="130" height="130" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
+                <defs><linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#d4a017"/><stop offset="100%" stop-color="#ffd700"/></linearGradient></defs>
+                <circle class="ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="36"/>
+              </svg>
+              <div class="ring-text"><span class="ring-pct" id="ring-pct">0%</span><span class="ring-lbl">bốc rồi</span></div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">⚡ Thao tác nhanh</div>
+            <div class="game-status-bar" id="game-status-bar" style="display:none">
+              <div class="gs-dot" id="gs-dot"></div>
+              <span id="game-open-label">—</span>
+            </div>
+            <div class="quick-actions" id="quick-actions">
+              <button class="action-btn action-btn-gold" id="new-game-btn">🎲 Tạo game mới</button>
+              <button class="action-btn action-btn-red" id="reset-game-btn">🔄 Reset trạng thái</button>
+              <button class="action-btn action-btn-blue" onclick="document.getElementById('export-btn').click()">📥 Xuất CSV</button>
+              <button class="action-btn action-btn-green" id="toggle-game-btn" style="display:none">🟢 Bật/tắt game</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ENVELOPES TABLE ── -->
+      <div class="tab-section" id="tab-envelopes">
+        <div class="table-section">
+          <div class="table-header">
+            <div class="table-title">🧧 Danh sách phong bì</div>
+            <div class="table-controls">
+              <input class="search-input" id="env-search" type="search" placeholder="Tìm ID, tên, mệnh giá…"/>
+              <select class="filter-select" id="env-filter">
+                <option value="all">Tất cả</option><option value="opened">Đã mở</option>
+                <option value="pending">Chưa mở</option><option value="special">Đặc biệt</option>
+              </select>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Loại</th><th>Hiển thị</th><th>Thực</th><th>Trạng thái</th><th>Người bốc</th><th>Thời gian</th><th>Thao tác</th></tr></thead>
+            <tbody id="env-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── EDIT ENVELOPES (mệnh giá từng ô) ── -->
+      <div class="tab-section" id="tab-edit-envelopes">
+        <div class="bulk-save-bar">
+          <button class="action-btn action-btn-gold" style="width:auto;margin-top:0" id="save-all-envs-btn">💾 Lưu tất cả thay đổi</button>
+          <button class="action-btn action-btn-red" style="width:auto;margin-top:0" id="shuffle-envs-btn">🔀 Xáo trộn lại thứ tự</button>
+          <span style="font-size:.78rem;color:var(--text-muted)">Chỉnh mệnh giá hiển thị / thực / loại từng ô rồi bấm Lưu</span>
+        </div>
+        <p class="section-hint">💡 <strong>Mệnh giá hiển thị</strong> = số người chơi thấy khi chọn. <strong>Mệnh giá thực</strong> = số thực tế (chỉ admin biết với ô đặc biệt). Tick <strong>Đặc biệt</strong> để admin hint hiện lên sau khi bốc.</p>
+        <div class="env-bulk-grid" id="env-bulk-grid"></div>
+      </div>
+
+      <!-- ── SPECIAL ── -->
+      <div class="tab-section" id="tab-special">
+        <div class="special-highlight">
+          <div class="special-highlight-title">🔥 Phong bì đặc biệt</div>
+          <div class="special-cards-grid" id="special-cards"></div>
+        </div>
+      </div>
+
+      <!-- ── PLAYERS ── -->
+      <div class="tab-section" id="tab-players">
+        <div class="table-section">
+          <div class="table-header">
+            <div class="table-title">👥 Danh sách người chơi</div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>STT</th><th>Tên</th><th>Mệnh giá HT</th><th>Mệnh giá thực</th><th>Loại</th><th>Thời gian</th></tr></thead>
+            <tbody id="players-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── CHARTS ── -->
+      <div class="tab-section" id="tab-charts">
+        <div class="chart-section">
+          <div class="chart-card"><div class="chart-card-title">📊 Phân phối mệnh giá</div><div id="chart-dist"></div></div>
+          <div class="chart-card"><div class="chart-card-title">📈 Tỷ lệ mở</div><div id="chart-rate"></div></div>
+        </div>
+        <div class="chart-card"><div class="chart-card-title">⏰ Hoạt động theo giờ</div><div id="chart-hourly"></div></div>
+      </div>
+
+      <!-- ── TIMELINE ── -->
+      <div class="tab-section" id="tab-timeline">
+        <div class="chart-card">
+          <div class="chart-card-title">⏱ Lịch sử (30 sự kiện gần nhất)</div>
+          <div id="timeline-container" style="max-height:580px;overflow-y:auto;padding-right:6px"></div>
+        </div>
+      </div>
+
+      <!-- ── NOTIFICATIONS ── -->
+      <div class="tab-section" id="tab-notifications">
+        <div class="chart-card">
+          <div class="chart-card-title">🔔 Thông báo realtime</div>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px">Tự động nhận khi có người bốc ô đặc biệt.</p>
+          <div id="notif-list"></div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ── -->
+      <div class="tab-section" id="tab-settings">
+        <div class="settings-tabs">
+          <button class="stab active" data-stab="s-text">🖋 Nội dung</button>
+          <button class="stab" data-stab="s-game">🎮 Game</button>
+          <button class="stab" data-stab="s-dist">💰 Mệnh giá</button>
+          <button class="stab" data-stab="s-msg">💬 Lời chúc</button>
+          <button class="stab" data-stab="s-account">🔐 Tài khoản</button>
+        </div>
+        <!-- Text -->
+        <div class="stab-panel active" id="s-text">
+          <div class="settings-card"><div class="settings-card-title">🖋 Nội dung hiển thị</div>
+            <div class="form-group"><label class="form-label">Tên phòng / sự kiện</label><input class="form-input" id="cfg-title" type="text"/></div>
+            <div class="form-group"><label class="form-label">Phụ đề</label><input class="form-input" id="cfg-subtitle" type="text"/></div>
+            <div class="form-group"><label class="form-label">Nhãn khu vực phong bì</label><input class="form-input" id="cfg-section-label" type="text"/></div>
+            <div class="form-group"><label class="form-label">Footer text</label><input class="form-input" id="cfg-footer" type="text"/></div>
+            <div class="form-group"><label class="form-label">Tiêu đề khi game đóng</label><input class="form-input" id="cfg-closed-title" type="text"/></div>
+            <div class="form-group"><label class="form-label">Thông báo khi game đóng</label><textarea class="form-input" id="cfg-closed-msg"></textarea></div>
+            <button class="action-btn action-btn-gold" id="save-text-btn">💾 Lưu nội dung</button>
+          </div>
+        </div>
+        <!-- Game -->
+        <div class="stab-panel" id="s-game">
+          <div class="settings-card"><div class="settings-card-title">🎮 Cài đặt game</div>
+            <div class="toggle-row"><span class="toggle-label">Mở game (cho phép bốc)</span><label class="toggle-switch"><input type="checkbox" id="cfg-game-open"/><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row"><span class="toggle-label">Hiện số người chơi</span><label class="toggle-switch"><input type="checkbox" id="cfg-show-players" checked/><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row"><span class="toggle-label">Hiện mệnh giá sau khi bốc</span><label class="toggle-switch"><input type="checkbox" id="cfg-show-value" checked/><span class="toggle-slider"></span></label></div>
+            <div class="form-group" style="margin-top:16px"><label class="form-label">Số confetti khi mở ô</label><input class="form-input" id="cfg-confetti" type="number" min="0" max="300"/></div>
+            <button class="action-btn action-btn-gold" id="save-game-btn">💾 Lưu cài đặt game</button>
+          </div>
+        </div>
+        <!-- Distribution -->
+        <div class="stab-panel" id="s-dist">
+          <div class="settings-card"><div class="settings-card-title">💰 Phân phối mệnh giá hiển thị</div>
+            <p class="section-hint">Số lượng ô cho mỗi mệnh giá. Sau khi lưu → bấm "Tạo game mới" để áp dụng.</p>
+            <div class="dist-grid" id="dist-grid"></div>
+            <div class="form-row" style="margin-bottom:14px">
+              <div class="form-group"><label class="form-label">Tổng số ô</label><input class="form-input" id="cfg-total-envs" type="number" min="4" max="100"/></div>
+              <div class="form-group"><label class="form-label">Số ô đặc biệt</label><input class="form-input" id="cfg-num-specials" type="number" min="0" max="20"/></div>
+            </div>
+            <div class="settings-card-title" style="margin-top:4px;margin-bottom:10px;font-size:.88rem">🏆 Mệnh giá các ô đặc biệt (nghìn đ)</div>
+            <div class="special-val-grid" id="special-val-inputs"></div>
+            <button class="action-btn action-btn-gold" id="save-dist-btn">💾 Lưu cấu hình mệnh giá</button>
+          </div>
+        </div>
+        <!-- Messages -->
+        <div class="stab-panel" id="s-msg">
+          <div class="settings-card"><div class="settings-card-title">💬 Lời chúc (mỗi dòng một câu)</div>
+            <div class="form-group"><label class="form-label">Mệnh giá thấp (≤ 5k)</label><textarea class="form-input" id="msg-low" rows="4"></textarea></div>
+            <div class="form-group"><label class="form-label">Mệnh giá trung (6–15k)</label><textarea class="form-input" id="msg-mid" rows="4"></textarea></div>
+            <div class="form-group"><label class="form-label">Mệnh giá cao (≥ 16k)</label><textarea class="form-input" id="msg-high" rows="4"></textarea></div>
+            <button class="action-btn action-btn-gold" id="save-msg-btn">💾 Lưu lời chúc</button>
+          </div>
+        </div>
+        <!-- Account -->
+        <div class="stab-panel" id="s-account">
+          <div class="settings-card" style="max-width:440px"><div class="settings-card-title">🔐 Tài khoản quản trị phòng</div>
+            <div class="form-group"><label class="form-label">Mật khẩu mới (để trống nếu không đổi)</label><input class="form-input" id="cfg-new-pass" type="password" placeholder="Mật khẩu mới..."/></div>
+            <div class="form-group"><label class="form-label">Xác nhận mật khẩu mới</label><input class="form-input" id="cfg-confirm-pass" type="password" placeholder="Nhập lại mật khẩu..."/></div>
+            <button class="action-btn action-btn-gold" id="save-account-btn">💾 Đổi mật khẩu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SHARE ── -->
+      <div class="tab-section" id="tab-share">
+        <div class="chart-card">
+          <div class="chart-card-title">🔗 Chia sẻ link phòng</div>
+          <div class="share-panel">
+            <p class="share-panel-title">LINK NGƯỜI CHƠI</p>
+            <div class="link-box-adm">
+              <span class="link-text-adm" id="share-room-link"></span>
+              <button class="copy-btn-sm" onclick="copyEl('share-room-link',this)">Copy</button>
+            </div>
+          </div>
+          <div class="share-panel" style="background:rgba(192,57,43,.04);border-color:rgba(192,57,43,.14)">
+            <p class="share-panel-title" style="color:rgba(231,76,60,.7)">LINK ADMIN (CHỈ BẠN)</p>
+            <div class="link-box-adm">
+              <span class="link-text-adm" id="share-admin-link"></span>
+              <button class="copy-btn-sm" onclick="copyEl('share-admin-link',this)">Copy</button>
+            </div>
+          </div>
+          <p style="font-size:.78rem;color:var(--text-muted);line-height:1.6">📌 Chia sẻ <strong style="color:rgba(46,204,113,.7)">Link người chơi</strong> cho mọi người. Giữ <strong style="color:rgba(231,76,60,.7)">Link Admin</strong> cho riêng bạn để quản lý phòng.</p>
+        </div>
+      </div>
+
+      <!-- ── ALL ROOMS ── -->
+      <div class="tab-section" id="tab-rooms">
+        <div class="chart-card">
+          <div class="chart-card-title">🏠 Tất cả phòng đang quản lý</div>
+          <div class="room-picker-grid" id="rooms-picker-grid"><p style="color:var(--text-muted);font-size:.85rem">Đang tải...</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Sub-tab settings
+document.querySelectorAll('.stab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.stab').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.stab-panel').forEach(p=>p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.stab)?.classList.add('active');
+  });
+});
+function copyEl(id,btn){const t=document.getElementById(id)?.textContent;if(!t)return;navigator.clipboard.writeText(t).then(()=>{btn.textContent='✓';setTimeout(()=>btn.textContent='Copy',2000)});}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../config.js"></script>
+<script src="../admin.js"></script>
+</body>
+</html>
